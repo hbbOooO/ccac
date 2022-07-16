@@ -1,0 +1,51 @@
+
+
+dataset:
+  class_name: BaseDataset
+  module_path: track1.datasets.base_dataset
+  datasets:
+  - dataset_type: train
+    data_root_dir: /root/autodl-tmp/data/Track1
+    data_file_path: train.txt
+    pipeline:
+    - name: BertProcessor
+      config:
+        bert_tokenizer_path: bert-base-uncased
+    - name: LabelProcessor
+      config: none
+  - dataset_type: val
+    data_root_dir: /root/autodl-tmp/data/Track1
+    data_file_path: dev.txt
+    pipeline:
+    - name: BertProcessor
+      config:
+        bert_tokenizer_path: bert-base-uncased
+    - name: LabelProcessor
+      config: none
+model:
+  class_name: BaseModel
+  module_path: track1.models.base_model
+  model:
+    bert:
+      hidden_size: 768
+    bert_path: bert-base-uncased
+run_param:
+  run_type: train
+  log_dir: /root/autodl-nas/save/ccac/track1/baseline/log/
+  log_level: info
+  timer_type: all
+  train_param:
+    max_epoch: 10
+    lr: 0.0001
+    batch_size: 16
+    log_interval: 100
+    loss: 
+      loss_name: CrossEntropyLoss
+    checkpoint:
+      ckpt_dir: /root/autodl-nas/save/ccac/track1/baseline/model/
+      save_by_epoch: false
+      save_best: True
+  val_param:
+    batch_size: 1
+  inference_param:
+    batch_size: 1
