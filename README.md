@@ -12,7 +12,7 @@
 ## 快速开始
 运行 `ccac/hanmingjie/track1/run.py`,命令如下：
 ```bash
-python run.py -config /root/autodl-nas/ccac/hanmingjie/track1/configs/base.yml
+python run.py -config ./configs/base.yml
 ```
 
 ## 目录建议
