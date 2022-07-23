@@ -13,7 +13,7 @@ class BaseModel(nn.Module):
         self.bert_embedding = BertEmbeddings(self.bert_config)
         self.bert = BertModel.from_pretrained(config['bert_path'])
 
-        self.classifier = nn.Linear(self.bert_config.hidden_size, 3)
+        self.classifier = nn.Linear(self.bert.config.hidden_size, 3)
         self.relu = nn.ReLU()
 
     def forward(self, batch):

@@ -15,9 +15,12 @@ class Timer:
         cls.start_time = time.time()
 
     @classmethod
-    def calculate_remain(cls, spend_epoch, spend_iteration, max_epoch, max_iteration):
+    def calculate_remain(cls, spend_epoch, spend_iteration, max_epoch, max_iteration, resume_epoch=None):
         curr_time = time.time()
         start_time = cls.start_time
+        if resume_epoch is not None:
+            spend_epoch -= resume_epoch
+            max_epoch -= resume_epoch
         if cls.timer_type == 'all':
             spend_iter_all = (spend_epoch - 1) * max_iteration + spend_iteration
             max_iter_all = max_epoch * max_iteration

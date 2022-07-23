@@ -1,4 +1,4 @@
-from click import argument
+
 import torch
 from torch import nn
 from torch.utils.data.dataset import Dataset
@@ -52,10 +52,6 @@ class BaseDataset(Dataset):
         gt_label = self.gt_label
         gt_label = {key: gt_label[key] for key in prediction.keys()}
         # sort
-        
-        # gt_label = gt_label.items().sort()
-        # prediction = prediction.items().sort()
-
         gt_label_sorted = [gt_label[k] for k in sorted(gt_label.keys())]
         prediction_sorted = [prediction[k] for k in sorted(prediction.keys())]
 

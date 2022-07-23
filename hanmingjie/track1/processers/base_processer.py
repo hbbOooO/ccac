@@ -1,4 +1,5 @@
 from pytorch_transformers.tokenization_bert import BertTokenizer
+from pytorch_transformers.tokenization_roberta import RobertaTokenizer
 from torch.nn import functional as F
 import torch
 import sys 
@@ -21,13 +22,15 @@ class Pipeline:
             processor_class = getattr(mod, processor_name)
             processor = processor_class(processor_config)
             processors.append(processor)
+        if len(processor_config) == 0:
+            processors.append(lambda x: x)
         self.processors = processors
     
-    def __call__(self, item):
+    def __call__(self, item, sample):
         processors = self.processors
         for processor in processors:
-            processor(item)
-        return item
+            processor(item, sample)
+        return sample
 
 class BertProcessor:
     def __init__(self, config):
@@ -39,41 +42,63 @@ class BertProcessor:
             test.txt    13      154
         '''
         self.config = config
-        self.point_max_length = 15
-        self.sentence_max_length = 260
+        self.point_max_length = config['point_max_length']
+        self.sentence_max_length = config['sentence_max_length']
         self.bert_tokenizer_config = config
         self.bert_tokenizer = BertTokenizer.from_pretrained(config['bert_tokenizer_path'])
         self.pad_id = self.bert_tokenizer.pad_token_id
 
-    def __call__(self, item):
+    def _tokenize(self, input, max_length):
+        indices = self.bert_tokenizer.encode(input, add_special_tokens=True)
+        tensor = torch.Tensor([self.pad_id for _ in range(max_length)]).to(dtype=torch.long)
+        length = len(indices) if len(indices) < max_length else max_length
+        tensor[:length] = torch.Tensor(indices)[:length]
+        mask = torch.Tensor([1 if i < length else 0 for i in range(max_length)])
+        return tensor, mask
+
+    def __call__(self, item, sample):
         point = item['point']
         sentence = item['sentence']
 
-        point_indices = self.bert_tokenizer.encode(point)
-        sentence_indices = self.bert_tokenizer.encode(sentence)
+        point_tensor, point_mask = self._tokenize(point, self.point_max_length)
+        sentence_tensor, sentence_mask = self._tokenize(sentence, self.sentence_max_length)
 
-        point_tensor = torch.Tensor([self.pad_id for _ in range(self.point_max_length)]).to(dtype=torch.long)
-        point_len = len(point_indices)
-        point_tensor[:point_len] = torch.Tensor(point_indices)
-        # point_len = torch.Tensor([point_len])
-        point_mask = torch.Tensor([1 if i < point_len else 0 for i in range(self.point_max_length)])
+        sample['point_tensor'] = point_tensor
+        sample['point_mask'] = point_mask
+        sample['sentence_tensor'] = sentence_tensor
+        sample['sentence_mask'] = sentence_mask
 
-        sentence_tensor = torch.Tensor([self.pad_id for _ in range(self.sentence_max_length)]).to(dtype=torch.long)
-        sentence_indices = sentence_indices[:min(len(sentence_indices), self.sentence_max_length)]
-        sentence_len = len(sentence_indices)
-        sentence_tensor[:sentence_len] = torch.Tensor(sentence_indices)
-        # sentence_len = torch.Tensor([sentence_len])
-        sentence_mask = torch.Tensor([1 if i < sentence_len else 0 for i in range(self.sentence_max_length)])
-
-        item['point_tensor'] = point_tensor
-        item['point_len'] = point_len
-        item['point_mask'] = point_mask
-        item['sentence_tensor'] = sentence_tensor
-        item['sentence_len'] = sentence_len
-        item['sentence_mask'] = sentence_mask
-
-        return item
+        sample['index'] = item['index']
     
+class RobertaProcessor:
+    def __init__(self, config):
+        self.config = config
+        self.point_max_length = config['point_max_length']
+        self.sentence_max_length = config['sentence_max_length']
+        self.roberta_tokenizer = RobertaTokenizer.from_pretrained(config['roberta_tokenizer_path'])
+        self.pad_id = self.roberta_tokenizer.pad_token_id
+
+    def _tokenize(self, input, max_length):
+        indices = self.roberta_tokenizer.encode(input, add_special_tokens=True)
+        tensor = torch.Tensor([self.pad_id for _ in range(max_length)]).to(dtype=torch.long)
+        length = len(indices) if len(indices) < max_length else max_length
+        tensor[:length] = torch.Tensor(indices)[:length]
+        mask = torch.Tensor([1 if i < length else 0 for i in range(max_length)])
+        return tensor, mask
+
+    def __call__(self, item, sample):
+        point = item['point']
+        sentence = item['sentence']
+
+        point_tensor, point_mask = self._tokenize(point, self.point_max_length)
+        sentence_tensor, sentence_mask = self._tokenize(sentence, self.sentence_max_length)
+
+        sample['point_tensor'] = point_tensor
+        sample['point_mask'] = point_mask
+        sample['sentence_tensor'] = sentence_tensor
+        sample['sentence_mask'] = sentence_mask
+
+        sample['index'] = item['index']
 
 class LabelProcessor:
     LABEL_ACCOUNT = 3
@@ -81,7 +106,7 @@ class LabelProcessor:
     def __init__(self, config):
         self.config = config
     
-    def __call__(self, item):
+    def __call__(self, item, sample):
         label = int(item['label'])
         onehot = torch.zeros(self.LABEL_ACCOUNT)
         onehot[label+1] = 1
@@ -89,6 +114,92 @@ class LabelProcessor:
         item['gt_label'] = label + 1
 
         return item
+
+class ContrastiveBertProcessor:
+    def __init__(self, config):
+        self.config = config
+        self.point_max_length = config['point_max_length']
+        self.sentence_pos_max_length = config['sentence_pos_max_length']
+        self.sentence_neg_max_length = config['sentence_neg_max_length']
+        self.bert_tokenizer_config = config
+        self.bert_tokenizer = BertTokenizer.from_pretrained(config['bert_tokenizer_path'])
+        self.pad_id = self.bert_tokenizer.pad_token_id
+
+    def _tokenize(self, input, max_length):
+        indices = self.bert_tokenizer.encode(input, add_special_tokens=True)
+        tensor = torch.Tensor([self.pad_id for _ in range(max_length)]).to(dtype=torch.long)
+        length = len(indices) if len(indices) < max_length else max_length
+        tensor[:length] = torch.Tensor(indices)[:length]
+        mask = torch.Tensor([1 if i < length else 0 for i in range(max_length)])
+        return tensor, mask
+
+    def __call__(self, item, sample):
+        point = item['point']
+        sentence_pos = item['sentence_pos']
+        sentence_neg = item['sentence_neg']
+
+        point_tensor, point_mask = self._tokenize(point, self.point_max_length)
+        sentence_pos_tensor, sentence_pos_mask = self._tokenize(sentence_pos, self.sentence_pos_max_length)
+        neg_res = [self._tokenize(sentence_neg[i], self.sentence_neg_max_length) for i in range(len(sentence_neg))]
+        sentence_neg_tensor = [item[0] for item in neg_res]
+        sentence_neg_mask = [item[1] for item in neg_res]
+
+        sample['index'] = item['index']
+
+        sample['point_tensor'] = point_tensor
+        sample['point_mask'] = point_mask
+        sample['sentence_pos_tensor'] = sentence_pos_tensor
+        sample['sentence_pos_mask'] = sentence_pos_mask
+        sample['sentence_neg_tensor'] = sentence_neg_tensor
+        sample['sentence_neg_mask'] = sentence_neg_mask
+
+
+class ContrastiveRobertaProcessor:
+    def __init__(self, config):
+        self.config = config
+        self.point_max_length = config['point_max_length']
+        self.sentence_pos_max_length = config['sentence_pos_max_length']
+        self.sentence_neg_max_length = config['sentence_neg_max_length']
+        self.roberta_tokenizer = RobertaTokenizer.from_pretrained(config['roberta_tokenizer_path'])
+        self.pad_id = self.roberta_tokenizer.pad_token_id
+
+    def _tokenize(self, input, max_length):
+        indices = self.roberta_tokenizer.encode(input, add_special_tokens=True)
+        tensor = torch.Tensor([self.pad_id for _ in range(max_length)]).to(dtype=torch.long)
+        length = len(indices) if len(indices) < max_length else max_length
+        tensor[:length] = torch.Tensor(indices)[:length]
+        mask = torch.Tensor([1 if i < length else 0 for i in range(max_length)])
+        return tensor, mask
+
+    def __call__(self, item, sample):
+        point = item['point']
+        sentence_pos = item['sentence_pos']
+        sentence_neg = item['sentence_neg']
+
+        point_tensor, point_mask = self._tokenize(point, self.point_max_length)
+        sentence_pos_tensor, sentence_pos_mask = self._tokenize(sentence_pos, self.sentence_pos_max_length)
+        neg_res = [self._tokenize(sentence_neg[i], self.sentence_neg_max_length) for i in range(len(sentence_neg))]
+        sentence_neg_tensor = [item[0] for item in neg_res]
+        sentence_neg_mask = [item[1] for item in neg_res]
+
+        sample['index'] = item['index']
+
+        sample['point_tensor'] = point_tensor
+        sample['point_mask'] = point_mask
+        sample['sentence_pos_tensor'] = sentence_pos_tensor
+        sample['sentence_pos_mask'] = sentence_pos_mask
+        sample['sentence_neg_tensor'] = sentence_neg_tensor
+        sample['sentence_neg_mask'] = sentence_neg_mask
+
+
+class DualLabelProcessor:
+
+    def __init__(self, config):
+        self.config = config
+    
+    def __call__(self, item, sample):
+        sample['gt_label'] = abs(int(item['label']))
+
 
 
 

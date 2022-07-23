@@ -15,21 +15,19 @@ class BaseLoss:
         elif self.loss_name == 'MSELoss':
             self.label_tran = lambda x: x.to(torch.float32)
             self.loss = MSELoss()
-        elif self.loss_name == "InfoNCE":
-            self.loss = InfoNCE(negative_mode=config['negative_mode'])
+        elif self.loss_name == "MSELossWeighted":
+            self.label_tran = lambda x: x.to(torch.float32)
+            device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
+            weight = torch.Tensor(config['weight']).to(device=device)
+            self.loss = MSELoss()
+        self.loss = InfoNCE(weight)
+        self.pred_tran = getattr(self, 'pred_tran', lambda x: x)
+        self.label_tran = getattr(self, 'label_tran', lambda x: x)
 
-    def __call__(self, *args, **kwargs):
+    def __call__(self, pred, label):
         assert self.loss is not None
-        if self.loss_name == "MSELoss":
-            kwargs['label'] = self.label_tran(kwargs['label'])
-        if self.loss_name == "InfoNCE":
-            query = kwargs['query']
-            positive_key = kwargs['positive_key']
-            negative_keys = kwargs['negative_keys']
-            return self.loss(query, positive_key, negative_keys)
-        else:
-            pred = kwargs['pred']
-            label = kwargs['label']
-            return self.loss(pred, label)
+        pred = self.pred_tran(pred)
+        label = self.label_tran(label)
+        return self.loss(pred, label)
         
     
