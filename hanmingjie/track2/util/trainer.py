@@ -4,12 +4,12 @@ from torch.optim import SGD
 import torch
 from tqdm import tqdm
 
-from track1.util.losses import BaseLoss
+from track2.util.losses import BaseLoss
 from common.logger import Logger
 from common.timer import Timer
 from common.checkpoint import CheckPoint
 from common.optimizer import Optimizer
-from track1.util.meter import Meter
+from track2.util.meter import Meter
 
 class Trainer:
     def __init__(self, config):
@@ -57,7 +57,8 @@ class Trainer:
         dataset_configs = self.dataset_config['datasets']
         datasets = {}
         for dataset_config in dataset_configs:
-            datasets[dataset_config['dataset_type']] = self.dataset_class(dataset_config)
+            if dataset_config['dataset_type'] in self.run_param['run_type']:
+                datasets[dataset_config['dataset_type']] = self.dataset_class(dataset_config)
         self.datasets = datasets
 
     def _init_model(self):

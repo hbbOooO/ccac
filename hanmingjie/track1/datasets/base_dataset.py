@@ -42,7 +42,8 @@ class BaseDataset(Dataset):
 
     def __getitem__(self, index):
         item = self.data[index]
-        return self.pipeline(item)
+        sample = {}
+        return self.pipeline(item, sample)
 
 
     def __len__(self):
@@ -55,12 +56,25 @@ class BaseDataset(Dataset):
         gt_label_sorted = [gt_label[k] for k in sorted(gt_label.keys())]
         prediction_sorted = [prediction[k] for k in sorted(prediction.keys())]
 
-        assert all(item == 0 or item == 1 or item == 2 for item in gt_label_sorted)
-        assert all(item == 0 or item == 1 or item == 2 for item in prediction_sorted)
+        # assert all(item == 0 or item == 1 or item == -1 for item in gt_label_sorted)
+        # assert all(item == 0 or item == 1 or item == -1 for item in prediction_sorted)
 
-        acc = accuracy_score(gt_label_sorted, prediction_sorted)
+        accuracy = accuracy_score(gt_label_sorted, prediction_sorted)
         precision = precision_score(gt_label_sorted, prediction_sorted, average='macro', zero_division=0)
+        precision_cls = precision_score(gt_label_sorted, prediction_sorted, average=None, zero_division=0)
         recall = recall_score(gt_label_sorted, prediction_sorted, average='macro', zero_division=0)
+        recall_cls = recall_score(gt_label_sorted, prediction_sorted, average=None, zero_division=0)
         f1 = f1_score(gt_label_sorted, prediction_sorted, average='macro', zero_division=0)
+        f1_cls = f1_score(gt_label_sorted, prediction_sorted, average=None, zero_division=0)
 
-        return {'f1': f1, 'precision':precision, 'recall':recall, 'acc':acc}
+        metric = {
+            'f1': f1,
+            'f1_cls': f1_cls,
+            'precision': precision,
+            'precision_cls': precision_cls,
+            'recall': recall,
+            'recall_cls': recall_cls,
+            'accuracy': accuracy
+        }
+
+        return metric

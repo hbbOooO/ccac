@@ -25,6 +25,8 @@ class BaseModel(nn.Module):
 
         cat_feat = torch.cat([point, sentence], dim=-1)
         cat_mask = torch.cat([point_mask, sentence_mask], dim=-1)
+        # cat_feat = point
+        # cat_mask = point_mask
         mul_out = self.bert(cat_feat, attention_mask=cat_mask)
 
         mul_features = mul_out[1]
@@ -33,11 +35,16 @@ class BaseModel(nn.Module):
         cls_out = self.classifier(mul_features)
         pred_prob = F.softmax(cls_out, dim=-1)
 
+        loss_input = {
+            'pred': pred_prob,
+            'label': batch['gt_label']
+        }
+
         pred = cls_out.argmax(dim=-1)
 
         pred_w_index = torch.cat([batch['index'].unsqueeze(-1), pred.unsqueeze(-1)], dim=-1)
 
-        return pred_prob, pred_w_index
+        return loss_input, pred_w_index
 
 
 
