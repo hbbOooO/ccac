@@ -3,17 +3,19 @@ from torch import nn
 from torch.nn import functional as F
 
 from pytorch_transformers.modeling_bert import BertForPreTraining, BertConfig, BertModel, BertEmbeddings
-
+from pytorch_transformers.modeling_roberta import RobertaModel
 
 class BaseModel(nn.Module):
     def __init__(self, config):
         super().__init__()
         self.config = config
-        self.bert_config = BertConfig()
-        self.bert_embedding = BertEmbeddings(self.bert_config)
-        self.bert = BertModel.from_pretrained(config['bert_path'])
+        self.encoder_type = config['encoder_type']
+        if self.encoder_type == 'bert':
+            self.encoder = BertModel.from_pretrained(config['encoder_path'])
+        elif self.encoder_type == 'roberta':
+            self.encoder = RobertaModel.from_pretrained(config['encoder_path'])
 
-        self.classifier = nn.Linear(self.bert.config.hidden_size, 3)
+        self.classifier = nn.Linear(self.encoder.config.hidden_size, 3)
         self.relu = nn.ReLU()
 
     def forward(self, batch):
@@ -27,7 +29,7 @@ class BaseModel(nn.Module):
         cat_mask = torch.cat([point_mask, sentence_mask], dim=-1)
         # cat_feat = point
         # cat_mask = point_mask
-        mul_out = self.bert(cat_feat, attention_mask=cat_mask)
+        mul_out = self.encoder(cat_feat, attention_mask=cat_mask)
 
         mul_features = mul_out[1]
 
