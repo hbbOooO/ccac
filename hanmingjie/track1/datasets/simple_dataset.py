@@ -82,10 +82,11 @@ class SimpleDataset(Dataset):
                 })
             else:
                 # point_index = point_index_llst[point_index]
-                if label == '0': group_data[point_index]['sentence_neg_index'].append(index)
-                else: group_data[point_index]['sentence_pos_index'].append(index)
+                if label == '0': group_data[point_index_list.index(point_index)]['sentence_neg_index'].append(index)
+                else: group_data[point_index_list.index(point_index)]['sentence_pos_index'].append(index)
         
         # pos/neg = 1/10
+        neg_num = self.config['neg_num']
         pair_data = []
         for item in group_data:
             point_index = item['point_index']
@@ -93,10 +94,10 @@ class SimpleDataset(Dataset):
             sentence_neg_index = item['sentence_neg_index']
             neg_select = [0 for _ in sentence_neg_index]
             if len(sentence_pos_index) == 0: continue
-            if len(sentence_neg_index) < 10: continue
+            if len(sentence_neg_index) < neg_num: continue
             while not all(neg_select):
                 for pos_index in sentence_pos_index:
-                    neg_ids = np.random.choice(len(sentence_neg_index), 10, replace=False)
+                    neg_ids = np.random.choice(len(sentence_neg_index), neg_num, replace=False)
                     neg_index_list = [sentence_neg_index[i] for i in range(len(sentence_neg_index)) if i in neg_ids]
                     neg_select = [neg_select[i] if i not in neg_ids else 1 for i in range(len(neg_select))]
                     pair_data.append({

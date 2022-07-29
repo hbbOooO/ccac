@@ -204,8 +204,8 @@ class SimpleProcessor:
         # self.encoder_type = config['encoder_type']
         
     def __call__(self, item, sample):
-        point_dir = self.feat_root_dir + '/point/'
-        sentence_dir = self.feat_root_dir + '/sentence/'
+        point_dir = self.feat_root_dir + 'point/'
+        sentence_dir = self.feat_root_dir + 'sentence/'
         if self.run_type == 'train':
             point_index = item['point_index']
             sentence_pos_index = item['sentence_pos_index']
@@ -244,6 +244,11 @@ class SimpleProcessor:
             sample['sentence_mask'] = sentence_mask
 
 
+class StageTwoProcessor:
+    def __init__(self, config):
+        self.config = config
 
+    def __call__(self, item, sample):
+        sample['gt_label'] = int(item['label'])
 
 

@@ -1,12 +1,13 @@
 import torch
 from torch import nn
 from torch.utils.data.dataset import Dataset
-from sklearn.metrics import accuracy_score, precision_score, recall_score, f1_score, log_loss
+from sklearn.metrics import accuracy_score, precision_score, recall_score, f1_score
 import numpy as np
 
 from track2.processers.base_processer import Pipeline
 
-class ContrastiveDataset(Dataset):
+# load bert features from files directly
+class SimpleDataset(Dataset):
     def __init__(self, config):
         super().__init__()
         self.config = config
@@ -15,86 +16,104 @@ class ContrastiveDataset(Dataset):
         self.data_path = config['data_root_dir'] + '/' + config['data_file_path']
         if self.dataset_type == 'train':
             self._read_pair()
-        elif self.dataset_type == 'val' or self.dataset_type == 'inference':
+        else:
             self._read()
         self.pipeline = Pipeline(config['pipeline'])
 
-    # read text file when validating and inference
     def _read(self):
         with open(self.data_path, encoding='utf-8') as f:
             lines = f.readlines()
         data = []
+        points = []
         for i in range(len(lines)):
             line = lines[i]
             point, sentence, label = line.split('\t')
             label = label[:-1]
+            if point not in points:
+                points.append(point)
             data.append({
                 'index': i,
                 'point': point,
+                'point_index': points.index(point),
                 'sentence': sentence,
                 'label': label
             })
-        gt_label = {item['index']: abs(int(item['label'])) for item in data}
-        self.gt_label = gt_label
-        self.data = data
+        self.data = self._clean(data)
+        self.gt_label = {item['index']: abs(int(item['label'])) for item in self.data}
 
-
-    # read text file when training
+    def _clean(self, data):
+        # remove emelemt of data when point is equal to sentence
+        return [item for item in data if item['point'] != item['sentence']]
+    
     def _read_pair(self):
         with open(self.data_path, encoding='utf-8') as f:
             lines = f.readlines()
         data = []
-        sentence_index_llst = {}
-        for line in lines:
+        points = []
+        for i in range(len(lines)):
+            line = lines[i]
             point, sentence, label = line.split('\t')
             label = label[:-1]
-            if sentence_index_llst.get(point, None) is None:
-                index = sentence_index_llst[point] = len(data)
+            if point not in points:
+                points.append(point)
+            data.append({
+                'index': i,
+                'point': point,
+                'point_index': points.index(point),
+                'sentence': sentence,
+                'label': label
+            })
+        data = self._clean(data)
+
+        group_data = []
+        point_index_list = []
+        for item in data:
+            index, point, point_index, sentence, label = item['index'], item['point'], item['point_index'], item['sentence'], item['label']
+            if point_index not in point_index_list:
+                point_index_list.append(point_index)
                 sentence_pos = []
                 sentence_neg = []
-                if label == '0': sentence_neg.append(sentence)
-                else: sentence_pos.append(sentence)
-                data.append({
-                    'index': index,
-                    'point': point,
-                    'sentence_pos': sentence_pos,
-                    'sentence_neg': sentence_neg
+                if label == '0': sentence_neg.append(index)
+                else: sentence_pos.append(index)
+                group_data.append({
+                    'point_index': point_index,
+                    'sentence_pos_index': sentence_pos,
+                    'sentence_neg_index': sentence_neg
                 })
             else:
-                index = sentence_index_llst[point]
-                if label == '0': data[index]['sentence_neg'].append(sentence)
-                else: data[index]['sentence_pos'].append(sentence)
+                # point_index = point_index_llst[point_index]
+                if label == '0': group_data[point_index_list.index(point_index)]['sentence_neg_index'].append(index)
+                else: group_data[point_index_list.index(point_index)]['sentence_pos_index'].append(index)
         
         # pos/neg = 1/10
+        neg_num = self.config['neg_num']
         pair_data = []
-        for item in data:
-            sentence_pos = item['sentence_pos']
-            sentence_neg = item['sentence_neg']
-            neg_select = [0 for _ in sentence_neg]
-            if len(sentence_pos) == 0: continue
-            if len(sentence_neg) < 10: continue
+        for item in group_data:
+            point_index = item['point_index']
+            sentence_pos_index = item['sentence_pos_index']
+            sentence_neg_index = item['sentence_neg_index']
+            neg_select = [0 for _ in sentence_neg_index]
+            if len(sentence_pos_index) == 0: continue
+            if len(sentence_neg_index) < neg_num: continue
             while not all(neg_select):
-                for pos_item in sentence_pos:
-                    neg_ids = np.random.choice(len(sentence_neg), 10, replace=False)
-                    neg_list = [sentence_neg[i] for i in range(len(sentence_neg)) if i in neg_ids]
+                for pos_index in sentence_pos_index:
+                    neg_ids = np.random.choice(len(sentence_neg_index), neg_num, replace=False)
+                    neg_index_list = [sentence_neg_index[i] for i in range(len(sentence_neg_index)) if i in neg_ids]
                     neg_select = [neg_select[i] if i not in neg_ids else 1 for i in range(len(neg_select))]
                     pair_data.append({
-                        'index': len(pair_data),
-                        'point': item['point'],
-                        'sentence_pos': pos_item,
-                        'sentence_neg': neg_list
+                        'point_index': point_index,
+                        'sentence_pos_index': pos_index,
+                        'sentence_neg_index': neg_index_list
                     })
         self.data = pair_data
 
+    def __len__(self):
+        return len(self.data)
 
     def __getitem__(self, index):
         item = self.data[index]
         sample = {}
         return self.pipeline(item, sample)
-
-
-    def __len__(self):
-        return len(self.data)
 
     def evaluate(self, prediction):
         gt_label = self.gt_label
@@ -102,9 +121,6 @@ class ContrastiveDataset(Dataset):
         # sort
         gt_label_sorted = [gt_label[k] for k in sorted(gt_label.keys())]
         prediction_sorted = [prediction[k] for k in sorted(prediction.keys())]
-
-        # assert all(item == 0 or item == 1 or item == -1 for item in gt_label_sorted)
-        # assert all(item == 0 or item == 1 or item == -1 for item in prediction_sorted)
 
         accuracy = accuracy_score(gt_label_sorted, prediction_sorted)
         precision = precision_score(gt_label_sorted, prediction_sorted, average='macro', zero_division=0)

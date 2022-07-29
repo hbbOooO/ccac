@@ -1,10 +1,9 @@
-
 dataset:
   class_name: BaseDataset
-  module_path: track1.datasets.base_dataset
+  module_path: track2.datasets.base_dataset
   datasets:
   - dataset_type: train
-    data_root_dir: /root/autodl-tmp/data/Track1
+    data_root_dir: /root/autodl-tmp/data/Track2
     data_file_path: train.txt
     pipeline:
     - name: RobertaProcessor
@@ -15,8 +14,8 @@ dataset:
     - name: LabelProcessor
       config: none
   - dataset_type: val
-    data_root_dir: /root/autodl-tmp/data/Track1
-    data_file_path: dev.txt
+    data_root_dir: /root/autodl-tmp/data/Track2
+    data_file_path: test.txt
     pipeline:
     - name: RobertaProcessor
       config:
@@ -27,19 +26,19 @@ dataset:
       config: none
 model:
   class_name: BaseModel
-  module_path: track1.models.base_model
+  module_path: track2.models.base_model
   model:
     encoder_type: roberta
     encoder_path: roberta-base
 run_param:
   run_type: train
-  log_dir: /root/autodl-nas/save/ccac/track1/baseline/log/
+  log_dir: /root/autodl-tmp/save/ccac/track2/baseline/log/
   log_level: info
   timer_type: all
-  meter_category_num: 3
+  meter_category_num: 2
   train_param:
     max_epoch: 10
-    batch_size: 2
+    batch_size: 8
     log_interval: 100
     val_when_train: true
     eval_when_train: true
@@ -50,14 +49,10 @@ run_param:
       lr: 0.001
       lr_step:
       - 3
-    loss: 
-      loss_name: CrossEntropyLossWeighted
-      weight:
-      - 1000
-      - 0.01
-      - 1000
+    loss:
+      loss_name: CrossEntropyLoss
     checkpoint:
-      ckpt_dir: /root/autodl-nas/save/ccac/track1/baseline/model/
+      ckpt_dir: /root/autodl-tmp/save/ccac/track2/baseline/model/
       save_by_epoch: false
       save_interval: 1
       save_best: false

@@ -253,6 +253,10 @@ class Trainer:
                 Timer.calculate_spend(),
                 Timer.calculate_remain(self.curr_epoch, self.curr_iteration, self.max_epoch, self.max_iteration, resume_epoch=getattr(self, 'resume_epoch', None))
             ))
+        # save encoder
+        if self.train_param.get('finetune', False):
+            encoder_save_path = self.train_param['encoder_save_path']
+            self.model.encoder.save_pretrained(encoder_save_path)
 
 
 

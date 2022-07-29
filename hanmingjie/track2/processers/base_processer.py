@@ -3,7 +3,7 @@ from pytorch_transformers.tokenization_roberta import RobertaTokenizer
 from torch.nn import functional as F
 import torch
 import sys 
-
+import gzip
 
 
 class Pipeline:
@@ -101,17 +101,13 @@ class RobertaProcessor:
         sample['index'] = item['index']
 
 class LabelProcessor:
-    LABEL_ACCOUNT = 3
+    LABEL_ACCOUNT = 2
 
     def __init__(self, config):
         self.config = config
     
     def __call__(self, item, sample):
-        label = int(item['label'])
-        onehot = torch.zeros(self.LABEL_ACCOUNT)
-        onehot[label+1] = 1
-        item['onehot'] = onehot
-        item['gt_label'] = label + 1
+        sample['gt_label'] = int(item['label'])
 
         return item
 
@@ -199,6 +195,54 @@ class DualLabelProcessor:
     
     def __call__(self, item, sample):
         sample['gt_label'] = abs(int(item['label']))
+
+
+class SimpleProcessor:
+    def __init__(self, config):
+        self.config = config
+        self.run_type = config['run_type']
+        self.feat_root_dir = config['feat_root_dir']
+        # self.encoder_type = config['encoder_type']
+        
+    def __call__(self, item, sample):
+        point_dir = self.feat_root_dir + 'point/'
+        sentence_dir = self.feat_root_dir + 'sentence/'
+        if self.run_type == 'train':
+            point_index = item['point_index']
+            sentence_pos_index = item['sentence_pos_index']
+            sentence_neg_index = item['sentence_neg_index']
+            point_pth = torch.load(gzip.GzipFile(point_dir+str(point_index)+'.pth.gz', "rb"))
+            point_tensor = point_pth['point_tensor']
+            point_mask = point_pth['point_mask']
+            sentence_pos_pth = torch.load(gzip.GzipFile(sentence_dir+str(sentence_pos_index)+'.pth.gz', "rb"))
+            sentence_pos_tensor = sentence_pos_pth['sentence_tensor']
+            sentence_pos_mask = sentence_pos_pth['sentence_mask']
+            sentence_neg_tensor_list = []
+            sentence_neg_mask_list = []
+            for neg_index in sentence_neg_index:
+                neg_pth = torch.load(gzip.GzipFile(sentence_dir+str(neg_index)+'.pth.gz', "rb"))
+                sentence_neg_tensor_list.append(neg_pth['sentence_tensor'])
+                sentence_neg_mask_list.append(neg_pth['sentence_mask'])
+            sample['point_tensor'] = point_tensor
+            sample['point_mask'] = point_mask
+            sample['sentence_pos_tensor'] = sentence_pos_tensor
+            sample['sentence_pos_mask'] = sentence_pos_mask
+            sample['sentence_neg_tensor_list'] = sentence_neg_tensor_list
+            sample['sentence_neg_mask_list'] = sentence_neg_mask_list
+        else:
+            point_index = item['point_index']
+            sentence_index = item['index']
+            point_pth = torch.load(gzip.GzipFile(point_dir+str(point_index)+'.pth.gz', "rb"))
+            point_tensor = point_pth['point_tensor']
+            point_mask = point_pth['point_mask']
+            sentence_pth = torch.load(gzip.GzipFile(sentence_dir+str(sentence_index)+'.pth.gz', "rb"))
+            sentence_tensor = sentence_pth['sentence_tensor']
+            sentence_mask = sentence_pth['sentence_mask']
+            sample['index'] = sentence_index
+            sample['point_tensor'] = point_tensor
+            sample['point_mask'] = point_mask
+            sample['sentence_tensor'] = sentence_tensor
+            sample['sentence_mask'] = sentence_mask
 
 
 

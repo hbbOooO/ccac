@@ -1,37 +1,37 @@
 dataset:
   class_name: SimpleDataset
-  module_path: track1.datasets.simple_dataset
+  module_path: track2.datasets.simple_dataset
   datasets:
 #  - dataset_type: train
-#    data_root_dir: /root/autodl-tmp/data/Track1
+#    data_root_dir: /root/autodl-tmp/data/Track2
 #    data_file_path: train.txt
 #    pipeline:
 #    - name: SimpleProcessor
 #      config:
 #        run_type: train
-#        feat_root_dir: /root/autodl-tmp/data/Track1/feat/
+#        feat_root_dir: /root/autodl-tmp/data/Track2/feat/bert/train/
   - dataset_type: val
-    data_root_dir: /root/autodl-tmp/data/Track1
-    data_file_path: dev.txt
+    data_root_dir: /root/autodl-tmp/data/Track2
+    data_file_path: test.txt
     pipeline:
     - name: SimpleProcessor
       config:
         run_type: val
-        feat_root_dir: /root/autodl-tmp/data/Track1/feat/bert/val/
+        feat_root_dir: /root/autodl-tmp/data/Track2/feat/bert/test/
 model:
   class_name: SimpleModel
-  module_path: track1.models.simple_model
+  module_path: track2.models.simple_model
   model:
     score_k: 0.3
     hidden_size: 768
     fc_dim_times: 4
 run_param:
   run_type: val
-  log_dir: /root/autodl-tmp/save/ccac/track1/simple_bert_val/log/
+  log_dir: /root/autodl-tmp/save/ccac/track2/simple_bert_val/log/
   log_level: info
   timer_type: all
   meter_category_num: 2
-  resume_file: /root/autodl-tmp/save/ccac/track1/simple_bert/model/epoch_100.ckpt
+  resume_file: /root/autodl-tmp/save/ccac/track2/simple_bert/model/epoch_200.ckpt
   train_param:
     max_epoch: 100
     batch_size: 128
@@ -49,7 +49,7 @@ run_param:
       loss_name: InfoNCE
       negative_mode: paired
     checkpoint:
-      ckpt_dir: /root/autodl-tmp/save/ccac/track1/simple_bert_val/model/
+      ckpt_dir: /root/autodl-tmp/save/ccac/track2/simple_bert_val/model/
       save_by_epoch: true
       save_interval: 10
       save_best: false

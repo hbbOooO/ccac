@@ -2,54 +2,54 @@ dataset:
   class_name: SimpleDataset
   module_path: track1.datasets.simple_dataset
   datasets:
-#  - dataset_type: train
-#    data_root_dir: /root/autodl-tmp/data/Track1
-#    data_file_path: train.txt
-#    pipeline:
-#    - name: SimpleProcessor
-#      config:
-#        run_type: train
-#        feat_root_dir: /root/autodl-tmp/data/Track1/feat/
+  - dataset_type: train
+    data_root_dir: /root/autodl-tmp/data/qnli
+    data_file_path: extra.txt
+    neg_num: 1
+    pipeline:
+    - name: SimpleProcessor
+      config:
+        run_type: train
+        feat_root_dir: /root/autodl-tmp/data/qnli/feat/bert/extra/
   - dataset_type: val
     data_root_dir: /root/autodl-tmp/data/Track1
-    data_file_path: dev.txt
+    data_file_path: test.txt
     pipeline:
     - name: SimpleProcessor
       config:
         run_type: val
-        feat_root_dir: /root/autodl-tmp/data/Track1/feat/bert/val/
+        feat_root_dir: /root/autodl-tmp/data/Track1/feat/bert/test/
 model:
   class_name: SimpleModel
   module_path: track1.models.simple_model
   model:
-    score_k: 0.3
+    score_k: 0
     hidden_size: 768
     fc_dim_times: 4
 run_param:
-  run_type: val
-  log_dir: /root/autodl-tmp/save/ccac/track1/simple_bert_val/log/
+  run_type: train
+  log_dir: /root/autodl-tmp/save/ccac/qnli/simple_bert/log/
   log_level: info
   timer_type: all
   meter_category_num: 2
-  resume_file: /root/autodl-tmp/save/ccac/track1/simple_bert/model/epoch_100.ckpt
   train_param:
     max_epoch: 100
-    batch_size: 128
+    batch_size: 1024
     log_interval: 10
     val_when_train: true
     eval_when_train: false
     optimizer:
       optimizer_name: sgd
-      use_warmup: true
+      use_warmup: false
       wamup_iter: 100
       lr: 0.1
       lr_step:
-      - 100
+      - 10000
     loss:
       loss_name: InfoNCE
       negative_mode: paired
     checkpoint:
-      ckpt_dir: /root/autodl-tmp/save/ccac/track1/simple_bert_val/model/
+      ckpt_dir: /root/autodl-tmp/save/ccac/qnli/simple_bert/model/
       save_by_epoch: true
       save_interval: 10
       save_best: false

@@ -4,21 +4,21 @@ dataset:
   datasets:
   - dataset_type: train
     data_root_dir: /root/autodl-tmp/data/Track1
-    data_file_path: train.txt
+    data_file_path: mixed.txt
     neg_num: 10
     pipeline:
     - name: SimpleProcessor
       config:
         run_type: train
-        feat_root_dir: /root/autodl-tmp/data/Track1/feat/bert/train/
+        feat_root_dir: /root/autodl-tmp/data/Track1/feat/bert/mixed/
   - dataset_type: val
     data_root_dir: /root/autodl-tmp/data/Track1
-    data_file_path: dev.txt
+    data_file_path: test.txt
     pipeline:
     - name: SimpleProcessor
       config:
         run_type: val
-        feat_root_dir: /root/autodl-tmp/data/Track1/feat/bert/val/
+        feat_root_dir: /root/autodl-tmp/data/Track1/feat/bert/test/
 model:
   class_name: SimpleModel
   module_path: track1.models.simple_model
@@ -28,7 +28,7 @@ model:
     fc_dim_times: 4
 run_param:
   run_type: train
-  log_dir: /root/autodl-tmp/save/ccac/track1/simple_bert/log/
+  log_dir: /root/autodl-tmp/save/ccac/track1/simple_bert_mixed/0-100/log/
   log_level: info
   timer_type: all
   meter_category_num: 2
@@ -45,11 +45,11 @@ run_param:
       lr: 0.1
       lr_step:
       - 10000
-    loss: 
+    loss:
       loss_name: InfoNCE
       negative_mode: paired
     checkpoint:
-      ckpt_dir: /root/autodl-tmp/save/ccac/track1/simple_bert/model/
+      ckpt_dir: /root/autodl-tmp/save/ccac/track1/simple_bert_mixed/0-100/model/
       save_by_epoch: true
       save_interval: 10
       save_best: false
