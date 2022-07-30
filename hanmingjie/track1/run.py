@@ -1,7 +1,7 @@
 import sys
 import os
 sys.path.append(os.path.abspath('..'))
-# sys.path.append('/root/autodl-nas/ccac/hanmingjie')
+sys.path.append('/root/autodl-nas/ccac/hanmingjie')
 import warnings
 warnings.filterwarnings("ignore")
 import time
