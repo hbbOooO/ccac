@@ -14,26 +14,26 @@ import gzip
 # Hyper parametr
 # data_root_dir = '/root/autodl-tmp/data/Track1/'
 # data_file_names = ['train.txt', 'dev.txt', 'test.txt']
-output_dir = '/root/autodl-tmp/data/qnli/feat/'
+output_dir = '/root/autodl-tmp/data/Track2/feat/'
 model_type = 'bert'
 output_dir += model_type + '/'
-run_types = ['extra']
+run_types = ['mixed']
 dataset_config = [
     {
-        'data_root_dir': '/root/autodl-tmp/data/qnli/',
-        'data_file_name': 'extra.txt',
+        'data_root_dir': '/root/autodl-tmp/data/Track2/',
+        'data_file_name': 'mixed.txt',
         'point_max_length': 512,
         'sentence_max_length': 512,
         'tokenizer_path': 'bert-base-uncased'
-    },
-    # {
-    #     'data_root_dir': '/root/autodl-tmp/data/Track1/',
+    }
+    # ,{
+    #     'data_root_dir': '/root/autodl-tmp/data/Track2/',
     #     'data_file_name': 'dev.txt',
     #     'point_max_length': 512,
     #     'sentence_max_length': 512,
     #     'tokenizer_path': 'bert-base-uncased'
     # },{
-    #     'data_root_dir': '/root/autodl-tmp/data/Track1/',
+    #     'data_root_dir': '/root/autodl-tmp/data/Track2/',
     #     'data_file_name': 'test.txt',
     #     'point_max_length': 512,
     #     'sentence_max_length': 512,

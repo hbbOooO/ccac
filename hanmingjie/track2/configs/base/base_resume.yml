@@ -1,0 +1,64 @@
+dataset:
+  class_name: BaseDataset
+  module_path: track2.datasets.base_dataset
+  datasets:
+  - dataset_type: train
+    data_root_dir: /root/autodl-tmp/data/Track2
+    data_file_path: train_balance.txt
+    pipeline:
+    - name: RobertaProcessor
+      config:
+        roberta_tokenizer_path: roberta-base
+        point_max_length: 256
+        sentence_max_length: 256
+    - name: LabelProcessor
+      config: none
+  - dataset_type: val
+    data_root_dir: /root/autodl-tmp/data/Track2
+    data_file_path: test.txt
+    pipeline:
+    - name: RobertaProcessor
+      config:
+        roberta_tokenizer_path: roberta-base
+        point_max_length: 256
+        sentence_max_length: 256
+    - name: LabelProcessor
+      config: none
+model:
+  class_name: BaseModel
+  module_path: track2.models.base_model
+  model:
+    encoder_type: roberta
+    encoder_path: roberta-base
+run_param:
+  run_type: train
+  log_dir: /root/autodl-tmp/save/ccac/track2/baseline/log/
+  log_level: info
+  timer_type: all
+  meter_category_num: 2
+  resume_file: /root/autodl-tmp/save/ccac/track2/baseline/model/epoch_9_4469.ckpt
+  train_param:
+    max_epoch: 20
+    batch_size: 8
+    log_interval: 100
+    val_when_train: true
+    eval_when_train: true
+    optimizer:
+      optimizer_name: sgd
+      use_warmup: true
+      wamup_iter: 1000
+      lr: 0.001
+      lr_step:
+      - 100000
+    loss:
+      loss_name: CrossEntropyLoss
+    checkpoint:
+      ckpt_dir: /root/autodl-tmp/save/ccac/track2/baseline/model/
+      save_by_epoch: true
+      save_interval: 1
+      save_best: false
+      save_last: true
+  val_param:
+    batch_size: 1
+  inference_param:
+    batch_size: 1

@@ -1,0 +1,70 @@
+
+dataset:
+  class_name: BaseDataset
+  module_path: track1.datasets.base_dataset
+  datasets:
+  - dataset_type: train
+    data_root_dir: /root/autodl-tmp/data/Track1
+    data_file_path: train_balance.txt
+    pipeline:
+    - name: RobertaProcessor
+      config:
+        roberta_tokenizer_path: roberta-base
+        point_max_length: 256
+        sentence_max_length: 256
+    - name: LabelProcessor
+      config: none
+  - dataset_type: val
+    data_root_dir: /root/autodl-tmp/data/Track1
+    data_file_path: dev.txt
+    pipeline:
+    - name: RobertaProcessor
+      config:
+        roberta_tokenizer_path: roberta-base
+        point_max_length: 256
+        sentence_max_length: 256
+    - name: LabelProcessor
+      config: none
+model:
+  class_name: TAN
+  module_path: track1.models.tan
+  model:
+    encoder_type: roberta
+    encoder_path: /root/autodl-nas/save/roberta_pretrain/
+    lstm:
+      input_dim: 768
+      hidden_dim: 768
+      num_layers: 2
+      biFlag: true
+    fc_mid: 192
+run_param:
+  run_type: train
+  log_dir: /root/autodl-nas/save/ccac/track1/tan/log/
+  log_level: info
+  timer_type: all
+  meter_category_num: 3
+  train_param:
+    max_epoch: 10
+    batch_size: 16
+    log_interval: 100
+    val_when_train: true
+    eval_when_train: true
+    optimizer:
+      optimizer_name: sgd
+      use_warmup: true
+      wamup_iter: 1000
+      lr: 0.01
+      lr_step:
+      - 10000
+    loss: 
+      loss_name: CrossEntropyLoss
+    checkpoint:
+      ckpt_dir: /root/autodl-nas/save/ccac/track1/tan/model/
+      save_by_epoch: false
+      save_interval: 1
+      save_best: false
+      save_last: true
+  val_param:
+    batch_size: 1
+  inference_param:
+    batch_size: 1

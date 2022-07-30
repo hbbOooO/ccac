@@ -57,8 +57,7 @@ class Trainer:
         dataset_configs = self.dataset_config['datasets']
         datasets = {}
         for dataset_config in dataset_configs:
-            if dataset_config['dataset_type'] in self.run_param['run_type']:
-                datasets[dataset_config['dataset_type']] = self.dataset_class(dataset_config)
+            datasets[dataset_config['dataset_type']] = self.dataset_class(dataset_config)
         self.datasets = datasets
 
     def _init_model(self):
@@ -254,6 +253,10 @@ class Trainer:
                 Timer.calculate_spend(),
                 Timer.calculate_remain(self.curr_epoch, self.curr_iteration, self.max_epoch, self.max_iteration, resume_epoch=getattr(self, 'resume_epoch', None))
             ))
+        # save encoder
+        if self.train_param.get('finetune', False):
+            encoder_save_path = self.train_param['encoder_save_path']
+            self.model.encoder.save_pretrained(encoder_save_path)
 
 
 

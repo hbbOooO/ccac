@@ -8,7 +8,7 @@ import time
 import argparse
 
 from common.yml_loader import YmlLoader
-from track1.util.trainer import Trainer
+from track2.util.trainer import Trainer
 from common.logger import Logger
 
 

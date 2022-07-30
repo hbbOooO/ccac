@@ -55,19 +55,21 @@ class BertProcessor:
         length = len(indices) if len(indices) < max_length else max_length
         tensor[:length] = torch.Tensor(indices)[:length]
         mask = torch.Tensor([1 if i < length else 0 for i in range(max_length)])
-        return tensor, mask
+        return tensor, mask, length
 
     def __call__(self, item, sample):
         point = item['point']
         sentence = item['sentence']
 
-        point_tensor, point_mask = self._tokenize(point, self.point_max_length)
-        sentence_tensor, sentence_mask = self._tokenize(sentence, self.sentence_max_length)
+        point_tensor, point_mask, point_len = self._tokenize(point, self.point_max_length)
+        sentence_tensor, sentence_mask, sentence_len = self._tokenize(sentence, self.sentence_max_length)
 
         sample['point_tensor'] = point_tensor
         sample['point_mask'] = point_mask
+        sample['point_len'] = point_len
         sample['sentence_tensor'] = sentence_tensor
         sample['sentence_mask'] = sentence_mask
+        sample['sentence_len'] = sentence_len
 
         sample['index'] = item['index']
     
@@ -85,19 +87,21 @@ class RobertaProcessor:
         length = len(indices) if len(indices) < max_length else max_length
         tensor[:length] = torch.Tensor(indices)[:length]
         mask = torch.Tensor([1 if i < length else 0 for i in range(max_length)])
-        return tensor, mask
+        return tensor, mask, length
 
     def __call__(self, item, sample):
         point = item['point']
         sentence = item['sentence']
 
-        point_tensor, point_mask = self._tokenize(point, self.point_max_length)
-        sentence_tensor, sentence_mask = self._tokenize(sentence, self.sentence_max_length)
+        point_tensor, point_mask, point_len = self._tokenize(point, self.point_max_length)
+        sentence_tensor, sentence_mask, sentence_len = self._tokenize(sentence, self.sentence_max_length)
 
         sample['point_tensor'] = point_tensor
         sample['point_mask'] = point_mask
+        sample['point_len'] = point_len
         sample['sentence_tensor'] = sentence_tensor
         sample['sentence_mask'] = sentence_mask
+        sample['sentence_len'] = sentence_len
 
         sample['index'] = item['index']
 
@@ -109,7 +113,6 @@ class LabelProcessor:
         label = int(item['label'])
         sample['gt_label'] = label + 1
 
-        return item
 
 class ContrastiveBertProcessor:
     def __init__(self, config):
@@ -204,8 +207,8 @@ class SimpleProcessor:
         # self.encoder_type = config['encoder_type']
         
     def __call__(self, item, sample):
-        point_dir = self.feat_root_dir + '/point/'
-        sentence_dir = self.feat_root_dir + '/sentence/'
+        point_dir = self.feat_root_dir + 'point/'
+        sentence_dir = self.feat_root_dir + 'sentence/'
         if self.run_type == 'train':
             point_index = item['point_index']
             sentence_pos_index = item['sentence_pos_index']
@@ -244,6 +247,11 @@ class SimpleProcessor:
             sample['sentence_mask'] = sentence_mask
 
 
+class StageTwoProcessor:
+    def __init__(self, config):
+        self.config = config
 
+    def __call__(self, item, sample):
+        sample['gt_label'] = int(item['label'])
 
 
